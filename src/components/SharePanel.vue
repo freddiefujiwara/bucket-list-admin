@@ -42,7 +42,7 @@ import {
 } from '../utils/share';
 
 const props = defineProps({
-  idToken: {
+  sessionToken: {
     type: String,
     required: true
   }
@@ -77,7 +77,7 @@ const issue = async () => {
   busy.value = true;
   message.value = '';
   try {
-    const result = await issueShare(props.idToken);
+    const result = await issueShare(props.sessionToken);
     issued.value = { token: result.share_token, expiresAt: result.expires_at };
   } catch (err) {
     message.value = err instanceof Error ? err.message : 'リンクの発行に失敗しました。';
@@ -90,7 +90,7 @@ const revoke = async () => {
   busy.value = true;
   message.value = '';
   try {
-    await revokeShare(props.idToken);
+    await revokeShare(props.sessionToken);
     issued.value = null;
     message.value = 'リンクを取り消しました。';
   } catch (err) {

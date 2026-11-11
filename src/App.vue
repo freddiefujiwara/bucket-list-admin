@@ -74,7 +74,7 @@
           <TileGrid v-else :items="filteredTiles" @select="openTile" />
         </section>
 
-        <SharePanel v-if="isOwner" :id-token="idToken" />
+        <SharePanel v-if="isOwner" :session-token="sessionToken" />
       </template>
     </main>
 
@@ -134,7 +134,7 @@ onMounted(() => {
 });
 
 const {
-  idToken,
+  sessionToken,
   shareToken,
   isAuthenticated,
   isOwner,

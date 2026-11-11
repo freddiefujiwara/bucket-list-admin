@@ -9,11 +9,13 @@ vi.mock('../services/api', async (importOriginal) => {
     fetchItems: vi.fn(),
     postAction: vi.fn(),
     issueShare: vi.fn(),
-    revokeShare: vi.fn()
+    revokeShare: vi.fn(),
+    exchangeSession: vi.fn().mockResolvedValue({ session_token: 'sess-1' }),
+    revokeSession: vi.fn().mockResolvedValue({ revoked: true })
   };
 });
 
-const { ApiError, fetchItems, postAction } = await import('../services/api');
+const { ApiError, exchangeSession, fetchItems, postAction, revokeSession } = await import('../services/api');
 
 const rawTile = (overrides = {}) => ({
   id: 1,
@@ -42,7 +44,7 @@ const sampleRaw = () => [
   })
 ];
 
-const loginAsOwner = () => localStorage.setItem('bucket-list:id-token', 'owner-token');
+const loginAsOwner = () => localStorage.setItem('bucket-list:session-token', 'owner-token');
 const loginWithShare = () => localStorage.setItem('bucket-list:share-token', 'share-token');
 
 const mountApp = async () => {
@@ -62,6 +64,10 @@ describe('App', () => {
     fetchItems.mockReset();
     postAction.mockReset();
     postAction.mockResolvedValue({ ok: true });
+    exchangeSession.mockReset();
+    exchangeSession.mockResolvedValue({ session_token: 'sess-1' });
+    revokeSession.mockReset();
+    revokeSession.mockResolvedValue({ revoked: true });
   });
 
   afterEach(() => {
@@ -158,7 +164,7 @@ describe('App', () => {
 
     const wrapper = await mountApp();
 
-    expect(fetchItems).toHaveBeenCalledWith({ idToken: 'owner-token', shareToken: '' });
+    expect(fetchItems).toHaveBeenCalledWith({ sessionToken: 'owner-token', shareToken: '' });
     expect(wrapper.findAll('article.card')).toHaveLength(3);
     expect(wrapper.text()).toContain('全3件（達成済み 1件）');
     // The owner sees the share panel.
@@ -171,7 +177,7 @@ describe('App', () => {
 
     const wrapper = await mountApp();
 
-    expect(fetchItems).toHaveBeenCalledWith({ idToken: '', shareToken: 'share-token' });
+    expect(fetchItems).toHaveBeenCalledWith({ sessionToken: '', shareToken: 'share-token' });
     expect(wrapper.findAll('article.card')).toHaveLength(3);
     expect(wrapper.text()).not.toContain('一時リンク（30日有効）');
   });
@@ -184,7 +190,7 @@ describe('App', () => {
 
     expect(wrapper.find('.auth-gate').exists()).toBe(true);
     expect(wrapper.text()).toContain('ログインの有効期限が切れました');
-    expect(localStorage.getItem('bucket-list:id-token')).toBe(null);
+    expect(localStorage.getItem('bucket-list:session-token')).toBe(null);
   });
 
   it('shows the empty state when there are no items', async () => {
@@ -230,7 +236,7 @@ describe('App', () => {
     await flushPromises();
 
     expect(wrapper.find('.auth-gate').exists()).toBe(true);
-    expect(localStorage.getItem('bucket-list:id-token')).toBe(null);
+    expect(localStorage.getItem('bucket-list:session-token')).toBe(null);
   });
 
   it('copies sanitized JSON and shows the success message', async () => {
@@ -378,7 +384,7 @@ describe('App', () => {
       await flushPromises();
 
       expect(postAction).toHaveBeenCalledWith(
-        { idToken: 'owner-token', shareToken: '' },
+        { sessionToken: 'owner-token', shareToken: '' },
         'update_item',
         { item: expect.objectContaining({ id: 1, title: 'Alpha改' }) }
       );
@@ -395,7 +401,7 @@ describe('App', () => {
       await flushPromises();
 
       expect(postAction).toHaveBeenCalledWith(
-        { idToken: 'owner-token', shareToken: '' },
+        { sessionToken: 'owner-token', shareToken: '' },
         'add_item',
         { item: expect.objectContaining({ title: '新しい夢' }) }
       );
@@ -413,7 +419,7 @@ describe('App', () => {
       await flushPromises();
 
       expect(postAction).toHaveBeenCalledWith(
-        { idToken: 'owner-token', shareToken: '' },
+        { sessionToken: 'owner-token', shareToken: '' },
         'delete_item',
         { id: 1 }
       );
@@ -429,7 +435,7 @@ describe('App', () => {
       await flushPromises();
 
       expect(postAction).toHaveBeenCalledWith(
-        { idToken: 'owner-token', shareToken: '' },
+        { sessionToken: 'owner-token', shareToken: '' },
         'delete_item',
         { id: 1 }
       );
@@ -548,7 +554,7 @@ describe('App', () => {
       await flushPromises();
 
       expect(wrapper.find('.auth-gate').exists()).toBe(true);
-      expect(localStorage.getItem('bucket-list:id-token')).toBe(null);
+      expect(localStorage.getItem('bucket-list:session-token')).toBe(null);
     });
 
     it('cancels the editor without saving', async () => {
