@@ -1,26 +1,32 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { GOOGLE_CLIENT_ID } from '../config';
+import { exchangeSession, revokeSession } from '../services/api';
 import { parseShareToken } from '../utils/share';
 
-const ID_TOKEN_KEY = 'bucket-list:id-token';
+const SESSION_TOKEN_KEY = 'bucket-list:session-token';
 const SHARE_TOKEN_KEY = 'bucket-list:share-token';
+// Written by older versions, which stored the raw Google ID token.
+// It expires after about an hour and is never stored anymore; any
+// leftover copy is dropped at boot.
+const LEGACY_ID_TOKEN_KEY = 'bucket-list:id-token';
 
 /**
  * Authentication for the management app, same scheme as health/asset:
- * the owner signs in with Google (ID token), or opens a temporary share
- * link (#share=...) whose token is owner-equivalent for 30 days.
+ * the owner signs in with Google and exchanges the (1-hour) ID token
+ * for a 30-day owner session, or opens a temporary share link
+ * (#share=...) whose token is owner-equivalent for 30 days.
  */
 export const useAuth = () => {
-  const idToken = ref('');
+  const sessionToken = ref('');
   const shareToken = ref('');
   const googleReady = ref(false);
   const googleScriptError = ref(false);
   const googleButtonRoot = ref(null);
 
-  const isAuthenticated = computed(() => Boolean(shareToken.value || idToken.value));
-  const isOwner = computed(() => Boolean(idToken.value));
+  const isAuthenticated = computed(() => Boolean(shareToken.value || sessionToken.value));
+  const isOwner = computed(() => Boolean(sessionToken.value));
   const authParams = computed(() => ({
-    idToken: idToken.value,
+    sessionToken: sessionToken.value,
     shareToken: shareToken.value
   }));
 
@@ -33,15 +39,26 @@ export const useAuth = () => {
   } else {
     shareToken.value = localStorage.getItem(SHARE_TOKEN_KEY) || '';
   }
-  idToken.value = localStorage.getItem(ID_TOKEN_KEY) || '';
+  localStorage.removeItem(LEGACY_ID_TOKEN_KEY);
+  sessionToken.value = localStorage.getItem(SESSION_TOKEN_KEY) || '';
 
-  const handleGoogleCredential = (response) => {
+  const handleGoogleCredential = async (response) => {
     const credential = response?.credential;
     if (!credential) {
       return;
     }
-    idToken.value = credential;
-    localStorage.setItem(ID_TOKEN_KEY, credential);
+    // Exchange the ID token for the owner session; only the session
+    // token is stored. A failed exchange (or one that returns no
+    // session) leaves the app signed out at the gate.
+    try {
+      const result = await exchangeSession(credential);
+      if (result?.session_token) {
+        sessionToken.value = result.session_token;
+        localStorage.setItem(SESSION_TOKEN_KEY, result.session_token);
+      }
+    } catch {
+      // Stay signed out; the sign-in button remains available.
+    }
   };
 
   const renderGoogleButton = () => {
@@ -83,17 +100,23 @@ export const useAuth = () => {
   };
 
   const logout = () => {
-    idToken.value = '';
+    const endingSession = sessionToken.value;
+    sessionToken.value = '';
     shareToken.value = '';
-    localStorage.removeItem(ID_TOKEN_KEY);
+    localStorage.removeItem(SESSION_TOKEN_KEY);
     localStorage.removeItem(SHARE_TOKEN_KEY);
+    if (endingSession) {
+      // Revoke the owner session server-side; local logout proceeds
+      // regardless of the outcome.
+      revokeSession(endingSession).catch(() => {});
+    }
   };
 
   onMounted(loadGoogleScript);
   watch([googleReady, googleButtonRoot], renderGoogleButton);
 
   return {
-    idToken,
+    sessionToken,
     shareToken,
     isAuthenticated,
     isOwner,

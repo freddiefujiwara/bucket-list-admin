@@ -8,7 +8,7 @@ const emptyFilters = () => ({ category: '', targetAge: null, status: 'all' });
 
 /**
  * Tile state and management actions. `getAuthParams` returns the current
- * credentials ({ idToken, shareToken }); `onAuthError` is called with the
+ * credentials ({ sessionToken, shareToken }); `onAuthError` is called with the
  * server message when the credentials are rejected (401/403), so the app
  * can drop them and return to the login gate.
  */

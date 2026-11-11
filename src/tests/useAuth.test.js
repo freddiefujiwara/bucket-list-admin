@@ -3,6 +3,13 @@ import { defineComponent, h, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { useAuth } from '../composables/useAuth';
 
+vi.mock('../services/api', () => ({
+  exchangeSession: vi.fn(),
+  revokeSession: vi.fn()
+}));
+
+const { exchangeSession, revokeSession } = await import('../services/api');
+
 const mountAuth = () => {
   let auth;
   const component = defineComponent({
@@ -20,6 +27,8 @@ describe('useAuth', () => {
     localStorage.clear();
     window.history.replaceState(null, '', window.location.pathname);
     delete window.google;
+    exchangeSession.mockReset().mockResolvedValue({ session_token: 'sess-1' });
+    revokeSession.mockReset().mockResolvedValue({ revoked: true });
   });
 
   afterEach(() => {
@@ -32,7 +41,7 @@ describe('useAuth', () => {
     const { auth } = mountAuth();
     expect(auth.isAuthenticated.value).toBe(false);
     expect(auth.isOwner.value).toBe(false);
-    expect(auth.authParams.value).toEqual({ idToken: '', shareToken: '' });
+    expect(auth.authParams.value).toEqual({ sessionToken: '', shareToken: '' });
   });
 
   it('takes the share token from the URL hash and stores it', () => {
@@ -43,32 +52,76 @@ describe('useAuth', () => {
     expect(localStorage.getItem('bucket-list:share-token')).toBe('hash-token');
   });
 
-  it('restores stored tokens', () => {
+  it('restores stored tokens and drops a legacy id token', () => {
     localStorage.setItem('bucket-list:share-token', 'stored-share');
+    localStorage.setItem('bucket-list:session-token', 'stored-session');
     localStorage.setItem('bucket-list:id-token', 'stored-id');
     const { auth } = mountAuth();
     expect(auth.shareToken.value).toBe('stored-share');
-    expect(auth.idToken.value).toBe('stored-id');
+    expect(auth.sessionToken.value).toBe('stored-session');
     expect(auth.isOwner.value).toBe(true);
+    expect(localStorage.getItem('bucket-list:id-token')).toBe(null);
   });
 
-  it('stores the Google credential as the id token', () => {
+  it('exchanges the Google credential for a session and stores it', async () => {
     const { auth } = mountAuth();
-    auth.handleGoogleCredential({});
-    expect(auth.idToken.value).toBe('');
-    auth.handleGoogleCredential({ credential: 'cred-1' });
-    expect(auth.idToken.value).toBe('cred-1');
-    expect(localStorage.getItem('bucket-list:id-token')).toBe('cred-1');
+    await auth.handleGoogleCredential({});
+    expect(auth.sessionToken.value).toBe('');
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(exchangeSession).toHaveBeenCalledWith('cred-1');
+    expect(auth.sessionToken.value).toBe('sess-1');
+    expect(localStorage.getItem('bucket-list:session-token')).toBe('sess-1');
   });
 
-  it('clears both tokens on logout', () => {
+  it('stays signed out when the exchange returns no session', async () => {
+    exchangeSession.mockResolvedValue({});
+    const { auth } = mountAuth();
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(auth.sessionToken.value).toBe('');
+    expect(auth.isAuthenticated.value).toBe(false);
+  });
+
+  it('stays signed out when the exchange returns nothing', async () => {
+    exchangeSession.mockResolvedValue(undefined);
+    const { auth } = mountAuth();
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(auth.sessionToken.value).toBe('');
+  });
+
+  it('stays signed out when the exchange fails', async () => {
+    exchangeSession.mockRejectedValue(new Error('forbidden email'));
+    const { auth } = mountAuth();
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(auth.sessionToken.value).toBe('');
+    expect(auth.isAuthenticated.value).toBe(false);
+  });
+
+  it('clears both tokens on logout and revokes the session', () => {
     localStorage.setItem('bucket-list:share-token', 'stored-share');
-    localStorage.setItem('bucket-list:id-token', 'stored-id');
+    localStorage.setItem('bucket-list:session-token', 'stored-session');
     const { auth } = mountAuth();
     auth.logout();
     expect(auth.isAuthenticated.value).toBe(false);
     expect(localStorage.getItem('bucket-list:share-token')).toBe(null);
-    expect(localStorage.getItem('bucket-list:id-token')).toBe(null);
+    expect(localStorage.getItem('bucket-list:session-token')).toBe(null);
+    expect(revokeSession).toHaveBeenCalledWith('stored-session');
+  });
+
+  it('logs out without a revoke when there is no session', () => {
+    localStorage.setItem('bucket-list:share-token', 'stored-share');
+    const { auth } = mountAuth();
+    auth.logout();
+    expect(auth.isAuthenticated.value).toBe(false);
+    expect(revokeSession).not.toHaveBeenCalled();
+  });
+
+  it('still logs out when the revoke request fails', async () => {
+    revokeSession.mockRejectedValue(new Error('offline'));
+    localStorage.setItem('bucket-list:session-token', 'stored-session');
+    const { auth } = mountAuth();
+    auth.logout();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(auth.isAuthenticated.value).toBe(false);
   });
 
   it('uses the already loaded Google script and renders the button', async () => {

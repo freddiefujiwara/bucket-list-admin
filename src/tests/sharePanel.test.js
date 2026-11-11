@@ -9,7 +9,7 @@ vi.mock('../services/api', () => ({
 
 const { issueShare, revokeShare } = await import('../services/api');
 
-const mountPanel = () => mount(SharePanel, { props: { idToken: 'owner-token' } });
+const mountPanel = () => mount(SharePanel, { props: { sessionToken: 'owner-token' } });
 
 describe('SharePanel', () => {
   beforeEach(() => {

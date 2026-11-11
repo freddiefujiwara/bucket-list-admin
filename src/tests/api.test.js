@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, fetchItems, issueShare, postAction, revokeShare } from '../services/api';
+import { ApiError, exchangeSession, fetchItems, issueShare, postAction, revokeSession, revokeShare } from '../services/api';
 
 const jsonResponse = (data) => ({
   json: vi.fn().mockResolvedValue(data)
@@ -25,7 +25,16 @@ describe('api service', () => {
     expect(url).not.toContain('id_token');
   });
 
-  it('fetches items with an id token when no share token exists', async () => {
+  it('fetches items with a session token when no share token exists', async () => {
+    fetch.mockResolvedValueOnce(jsonResponse([]));
+
+    await fetchItems({ sessionToken: 'sess-1', shareToken: '' });
+
+    expect(fetch.mock.calls[0][0]).toContain('session_token=sess-1');
+    expect(fetch.mock.calls[0][0]).not.toContain('id_token');
+  });
+
+  it('fetches items with an id token when no share or session token exists', async () => {
     fetch.mockResolvedValueOnce(jsonResponse([]));
 
     await fetchItems({ idToken: 'id-1', shareToken: '' });
@@ -93,6 +102,18 @@ describe('api service', () => {
     });
   });
 
+  it('posts actions with a session token in the body', async () => {
+    fetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await postAction({ sessionToken: 'sess-1' }, 'delete_item');
+
+    const [, options] = fetch.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({
+      action: 'delete_item',
+      session_token: 'sess-1'
+    });
+  });
+
   it('posts actions with an id token and default payload', async () => {
     fetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
 
@@ -105,18 +126,35 @@ describe('api service', () => {
     });
   });
 
-  it('issues and revokes share sessions with the id token', async () => {
+  it('issues and revokes share sessions with the owner session', async () => {
     fetch
       .mockResolvedValueOnce(jsonResponse({ share_token: 'tok', expires_at: '2030-01-01' }))
       .mockResolvedValueOnce(jsonResponse({ revoked: true }));
 
-    const issued = await issueShare('id-1');
+    const issued = await issueShare('sess-1');
     expect(issued.share_token).toBe('tok');
     expect(fetch.mock.calls[0][0]).toContain('action=issue_share');
-    expect(fetch.mock.calls[0][0]).toContain('id_token=id-1');
+    expect(fetch.mock.calls[0][0]).toContain('session_token=sess-1');
 
-    const revoked = await revokeShare('id-1');
+    const revoked = await revokeShare('sess-1');
     expect(revoked).toEqual({ revoked: true });
     expect(fetch.mock.calls[1][0]).toContain('action=revoke_share');
+    expect(fetch.mock.calls[1][0]).toContain('session_token=sess-1');
+  });
+
+  it('exchanges an id token for a session and revokes the session', async () => {
+    fetch
+      .mockResolvedValueOnce(jsonResponse({ session_token: 'sess-1' }))
+      .mockResolvedValueOnce(jsonResponse({ revoked: true }));
+
+    const exchanged = await exchangeSession('id-1');
+    expect(exchanged.session_token).toBe('sess-1');
+    expect(fetch.mock.calls[0][0]).toContain('action=exchange_session');
+    expect(fetch.mock.calls[0][0]).toContain('id_token=id-1');
+
+    const revoked = await revokeSession('sess-1');
+    expect(revoked).toEqual({ revoked: true });
+    expect(fetch.mock.calls[1][0]).toContain('action=revoke_session');
+    expect(fetch.mock.calls[1][0]).toContain('session_token=sess-1');
   });
 });
