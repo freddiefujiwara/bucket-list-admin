@@ -126,6 +126,17 @@ describe('api service', () => {
     });
   });
 
+  it('posts actions without any token when auth is missing', async () => {
+    fetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await postAction(null, 'delete_item');
+
+    const [, options] = fetch.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({
+      action: 'delete_item'
+    });
+  });
+
   it('issues and revokes share sessions with the owner session', async () => {
     fetch
       .mockResolvedValueOnce(jsonResponse({ share_token: 'tok', expires_at: '2030-01-01' }))

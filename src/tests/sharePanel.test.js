@@ -79,7 +79,9 @@ describe('SharePanel', () => {
     await flushPromises();
 
     expect(revokeShare).toHaveBeenCalledWith('owner-token');
-    expect(wrapper.find('.share-issued').isVisible()).toBe(false);
+    // v-show による非表示をインラインスタイルで確認する
+    // （isVisible() の判定は jsdom / test-utils の版で揺れるため）
+    expect(wrapper.find('.share-issued').element.style.display).toBe('none');
     expect(wrapper.text()).toContain('リンクを取り消しました。');
   });
 
