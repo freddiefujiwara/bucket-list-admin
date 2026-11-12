@@ -12,10 +12,12 @@ export default defineConfig(({ mode }) => {
       coverage: {
         provider: 'v8',
         reporter: ['text', 'html'],
-        statements: 100,
-        branches: 100,
-        functions: 100,
-        lines: 100,
+        thresholds: {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100
+        },
         exclude: [
           'src/main.js',
           '*.js',
