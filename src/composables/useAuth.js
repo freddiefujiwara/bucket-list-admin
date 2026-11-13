@@ -1,10 +1,20 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { GOOGLE_CLIENT_ID } from '../config';
 import { exchangeSession, revokeSession } from '../services/api';
+import { isStagingBuild } from '../staging-banner.js';
 import { parseShareToken } from '../utils/share';
 
-const SESSION_TOKEN_KEY = 'bucket-list:session-token';
-const SHARE_TOKEN_KEY = 'bucket-list:share-token';
+// Storage keys are environment-scoped: localStorage is shared across
+// the whole origin, so staging builds must never read or overwrite the
+// production tokens (same pattern as tweet/alarm).
+const storageKey = (base) => (isStagingBuild() ? `${base}:staging` : base);
+const SESSION_TOKEN_KEY = storageKey('bucket-list:session-token');
+const SHARE_TOKEN_KEY = storageKey('bucket-list:share-token');
+// Older versions persisted the owner-equivalent share token in
+// localStorage (in both builds, under this unsuffixed key). The share
+// token now lives in sessionStorage only; any leftover localStorage
+// copy is dropped at boot.
+const LEGACY_SHARE_TOKEN_KEY = 'bucket-list:share-token';
 // Written by older versions, which stored the raw Google ID token.
 // It expires after about an hour and is never stored anymore; any
 // leftover copy is dropped at boot.
@@ -35,10 +45,11 @@ export const useAuth = () => {
   const fromHash = parseShareToken(window.location.hash);
   if (fromHash) {
     shareToken.value = fromHash;
-    localStorage.setItem(SHARE_TOKEN_KEY, fromHash);
+    sessionStorage.setItem(SHARE_TOKEN_KEY, fromHash);
   } else {
-    shareToken.value = localStorage.getItem(SHARE_TOKEN_KEY) || '';
+    shareToken.value = sessionStorage.getItem(SHARE_TOKEN_KEY) || '';
   }
+  localStorage.removeItem(LEGACY_SHARE_TOKEN_KEY);
   localStorage.removeItem(LEGACY_ID_TOKEN_KEY);
   sessionToken.value = localStorage.getItem(SESSION_TOKEN_KEY) || '';
 
@@ -104,7 +115,7 @@ export const useAuth = () => {
     sessionToken.value = '';
     shareToken.value = '';
     localStorage.removeItem(SESSION_TOKEN_KEY);
-    localStorage.removeItem(SHARE_TOKEN_KEY);
+    sessionStorage.removeItem(SHARE_TOKEN_KEY);
     if (endingSession) {
       // Revoke the owner session server-side; local logout proceeds
       // regardless of the outcome.

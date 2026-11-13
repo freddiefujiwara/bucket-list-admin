@@ -25,6 +25,7 @@ const mountAuth = () => {
 describe('useAuth', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     window.history.replaceState(null, '', window.location.pathname);
     delete window.google;
     exchangeSession.mockReset().mockResolvedValue({ session_token: 'sess-1' });
@@ -33,6 +34,7 @@ describe('useAuth', () => {
 
   afterEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     window.history.replaceState(null, '', window.location.pathname);
     delete window.google;
   });
@@ -49,17 +51,20 @@ describe('useAuth', () => {
     const { auth } = mountAuth();
     expect(auth.shareToken.value).toBe('hash-token');
     expect(auth.isAuthenticated.value).toBe(true);
-    expect(localStorage.getItem('bucket-list:share-token')).toBe('hash-token');
+    expect(sessionStorage.getItem('bucket-list:share-token')).toBe('hash-token');
+    expect(localStorage.getItem('bucket-list:share-token')).toBe(null);
   });
 
-  it('restores stored tokens and drops a legacy id token', () => {
-    localStorage.setItem('bucket-list:share-token', 'stored-share');
+  it('restores stored tokens and drops legacy tokens', () => {
+    sessionStorage.setItem('bucket-list:share-token', 'stored-share');
+    localStorage.setItem('bucket-list:share-token', 'legacy-share');
     localStorage.setItem('bucket-list:session-token', 'stored-session');
     localStorage.setItem('bucket-list:id-token', 'stored-id');
     const { auth } = mountAuth();
     expect(auth.shareToken.value).toBe('stored-share');
     expect(auth.sessionToken.value).toBe('stored-session');
     expect(auth.isOwner.value).toBe(true);
+    expect(localStorage.getItem('bucket-list:share-token')).toBe(null);
     expect(localStorage.getItem('bucket-list:id-token')).toBe(null);
   });
 
@@ -97,18 +102,18 @@ describe('useAuth', () => {
   });
 
   it('clears both tokens on logout and revokes the session', () => {
-    localStorage.setItem('bucket-list:share-token', 'stored-share');
+    sessionStorage.setItem('bucket-list:share-token', 'stored-share');
     localStorage.setItem('bucket-list:session-token', 'stored-session');
     const { auth } = mountAuth();
     auth.logout();
     expect(auth.isAuthenticated.value).toBe(false);
-    expect(localStorage.getItem('bucket-list:share-token')).toBe(null);
+    expect(sessionStorage.getItem('bucket-list:share-token')).toBe(null);
     expect(localStorage.getItem('bucket-list:session-token')).toBe(null);
     expect(revokeSession).toHaveBeenCalledWith('stored-session');
   });
 
   it('logs out without a revoke when there is no session', () => {
-    localStorage.setItem('bucket-list:share-token', 'stored-share');
+    sessionStorage.setItem('bucket-list:share-token', 'stored-share');
     const { auth } = mountAuth();
     auth.logout();
     expect(auth.isAuthenticated.value).toBe(false);
