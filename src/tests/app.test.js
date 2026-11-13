@@ -45,7 +45,7 @@ const sampleRaw = () => [
 ];
 
 const loginAsOwner = () => localStorage.setItem('bucket-list:session-token', 'owner-token');
-const loginWithShare = () => localStorage.setItem('bucket-list:share-token', 'share-token');
+const loginWithShare = () => sessionStorage.setItem('bucket-list:share-token', 'share-token');
 
 const mountApp = async () => {
   const wrapper = mount(App);
@@ -59,6 +59,7 @@ const filterChip = (wrapper, label) =>
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     window.history.replaceState(null, '', window.location.pathname);
     delete window.google;
     fetchItems.mockReset();
@@ -72,6 +73,7 @@ describe('App', () => {
 
   afterEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     window.history.replaceState(null, '', window.location.pathname);
     document.documentElement.removeAttribute('data-theme');
     delete window.google;
