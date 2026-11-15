@@ -76,6 +76,27 @@ describe('FilterBar', () => {
     expect(wrapper.emitted('change')).toEqual([[{ targetAge: null }]]);
   });
 
+  it('emits change with in_progress from the status chip', async () => {
+    const wrapper = mountBar();
+
+    const chip = wrapper
+      .findAll('button.chip')
+      .find((candidate) => candidate.text() === '仕掛り中');
+    await chip.trigger('click');
+
+    expect(wrapper.emitted('change')).toEqual([[{ status: 'in_progress' }]]);
+  });
+
+  it('marks the in-progress chip active from the filters prop', () => {
+    const wrapper = mountBar({
+      filters: { category: '', targetAge: null, status: 'in_progress' }
+    });
+
+    const active = wrapper.findAll('button.chip.active').map((chip) => chip.text());
+    expect(active).toContain('仕掛り中');
+    expect(wrapper.find('.clear').exists()).toBe(true);
+  });
+
   it('emits clear when the clear button is clicked', async () => {
     const wrapper = mountBar({
       filters: { category: '', targetAge: null, status: 'completed' }

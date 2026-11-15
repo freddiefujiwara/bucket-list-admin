@@ -60,6 +60,12 @@ export const useTiles = (getAuthParams, onAuthError) => {
       if (filters.value.status === 'uncompleted' && item.completed === true) {
         return false;
       }
+      if (
+        filters.value.status === 'in_progress' &&
+        (item.completed === true || item.status !== 'in_progress')
+      ) {
+        return false;
+      }
       return true;
     })
   );

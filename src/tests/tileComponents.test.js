@@ -60,6 +60,30 @@ describe('TileCard', () => {
     expect(wrapper.text()).toContain('達成日: 2024年03月10日');
   });
 
+  it('shows the in-progress overlay when underway', () => {
+    const wrapper = mountCard({
+      title: 'Underway',
+      completed: false,
+      status: 'in_progress'
+    });
+
+    expect(wrapper.find('.progress-overlay').exists()).toBe(true);
+    expect(wrapper.text()).toContain('仕掛り中');
+  });
+
+  it('hides the in-progress overlay when completed or not started', () => {
+    const done = mountCard({
+      title: 'Done',
+      completed: true,
+      completedAt: '2024-03-10',
+      status: 'in_progress'
+    });
+    expect(done.find('.progress-overlay').exists()).toBe(false);
+
+    const plain = mountCard({ title: 'Plain', completed: false, status: '' });
+    expect(plain.find('.progress-overlay').exists()).toBe(false);
+  });
+
   it('shows original date string if date is invalid', () => {
     const wrapper = mountCard({
       title: 'Invalid Date',
@@ -156,6 +180,19 @@ describe('TileModal', () => {
 
     await wrapper.get('button.edit-button').trigger('click');
     expect(wrapper.emitted('edit')).toHaveLength(1);
+  });
+
+  it('shows the in-progress chip only for underway items', () => {
+    const underway = mountModal({
+      item: makeItem({ title: 'Underway', completed: false, status: 'in_progress' })
+    });
+    expect(underway.find('.status-chip').exists()).toBe(true);
+    expect(underway.text()).toContain('仕掛り中');
+
+    const done = mountModal({
+      item: makeItem({ title: 'Done', completed: true, status: 'in_progress' })
+    });
+    expect(done.find('.status-chip').exists()).toBe(false);
   });
 
   it('hides management sections when empty', () => {
