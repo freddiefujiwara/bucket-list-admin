@@ -95,6 +95,7 @@ const emit = defineEmits(['change', 'clear']);
 const statusOptions = [
   { value: 'all', label: 'すべて' },
   { value: 'uncompleted', label: '未達成' },
+  { value: 'in_progress', label: '仕掛り中' },
   { value: 'completed', label: '達成済み' }
 ];
 

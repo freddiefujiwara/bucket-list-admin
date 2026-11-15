@@ -14,6 +14,12 @@
           <span v-if="item.targetAge" class="chip">
             {{ formatTargetAge(item.targetAge) }}
           </span>
+          <span
+            v-if="!item.completed && item.status === 'in_progress'"
+            class="chip status-chip"
+          >
+            仕掛り中
+          </span>
         </div>
         <p v-if="item.completedAt" class="modal-completed">
           達成日: {{ formatDate(item.completedAt) }}
@@ -198,6 +204,11 @@ onUnmounted(() => {
   padding: 4px 10px;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.modal-meta .chip.status-chip {
+  border-color: #d97706;
+  color: #d97706;
 }
 
 .modal-completed {

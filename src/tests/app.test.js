@@ -319,6 +319,30 @@ describe('App', () => {
       expect(wrapper.findAll('article.card')).toHaveLength(2);
     });
 
+    it('filters by in-progress status', async () => {
+      loginAsOwner();
+      fetchItems.mockResolvedValue([
+        rawTile(),
+        rawTile({ id: 2, category: 'Food', target_age: 50, title: 'Bravo', status: 'in_progress' }),
+        rawTile({
+          id: 3,
+          category: 'Travel',
+          target_age: 50,
+          title: 'Charlie',
+          completed: true,
+          completed_at: '2023-10-26T15:00:00.000Z',
+          status: 'in_progress'
+        })
+      ]);
+      const wrapper = await mountApp();
+
+      await filterChip(wrapper, '仕掛り中').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.findAll('article.card')).toHaveLength(1);
+      expect(wrapper.text()).toContain('Bravo');
+    });
+
     it('combines category and status filters', async () => {
       const wrapper = await mountWithSamples();
 

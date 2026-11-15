@@ -45,6 +45,7 @@ describe('ItemEditor', () => {
       note: '',
       next_action: '',
       progress: '',
+      status: '',
       image_url: '',
       completed: false
     });
@@ -61,6 +62,7 @@ describe('ItemEditor', () => {
     await wrapper.find('.note-input').setValue('メモです');
     await wrapper.find('.next-action-input').setValue('申し込む');
     await wrapper.find('.progress-input').setValue('準備中');
+    await wrapper.find('.status-select').setValue('in_progress');
     await wrapper.find('.image-url-input').setValue('https://example.com/x.jpg');
     await wrapper.find('.completed-input').setValue(true);
     await wrapper.find('.completed-date-input').setValue('2026-11-07');
@@ -73,10 +75,26 @@ describe('ItemEditor', () => {
       note: 'メモです',
       next_action: '申し込む',
       progress: '準備中',
+      // Completing an item clears its in-progress status.
+      status: '',
       image_url: 'https://example.com/x.jpg',
       completed: true,
       completed_at: '2026-11-06T15:00:00.000Z'
     });
+  });
+
+  it('prefills and saves the in-progress status', async () => {
+    const wrapper = mount(ItemEditor, {
+      props: { item: { ...existingItem, completed: false, completedAt: null, status: 'in_progress' } }
+    });
+
+    expect(wrapper.find('.status-select').element.value).toBe('in_progress');
+
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('save')[0][0];
+    expect(payload.status).toBe('in_progress');
+    expect(payload.completed).toBe(false);
   });
 
   it('prefills an existing item and converts the completed date both ways', async () => {

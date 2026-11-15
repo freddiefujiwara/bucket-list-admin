@@ -14,6 +14,12 @@
     <div v-if="item.completed && item.completedAt" class="overlay">
       <span>達成日: {{ formatDate(item.completedAt) }}</span>
     </div>
+    <div
+      v-if="!item.completed && item.status === 'in_progress'"
+      class="overlay progress-overlay"
+    >
+      <span>仕掛り中</span>
+    </div>
   </article>
 </template>
 
@@ -130,5 +136,9 @@ h2 {
   font-size: 0.85rem;
   text-align: center;
   pointer-events: none;
+}
+
+.progress-overlay {
+  background: #b45309;
 }
 </style>

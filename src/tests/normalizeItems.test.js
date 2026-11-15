@@ -13,6 +13,7 @@ describe('normalizeItems', () => {
         image_url: 'img.jpg',
         next_action: 'Book the flight',
         progress: 'Saving money',
+        status: 'in_progress',
         completed: true,
         completed_at: '2024-01-01'
       }
@@ -28,6 +29,7 @@ describe('normalizeItems', () => {
         imageUrl: 'img.jpg',
         nextAction: 'Book the flight',
         progress: 'Saving money',
+        status: 'in_progress',
         completed: true,
         completedAt: '2024-01-01'
       }
@@ -50,6 +52,7 @@ describe('normalizeItems', () => {
     expect(result[0].completedAt).toBe(null);
     expect(result[0].nextAction).toBe('');
     expect(result[0].progress).toBe('');
+    expect(result[0].status).toBe('');
     expect(result[0].category).toBe('');
     expect(result[0].targetAge).toBe(null);
   });
@@ -78,6 +81,7 @@ describe('normalizeItems', () => {
         imageUrl: 'img.jpg',
         nextAction: '',
         progress: '',
+        status: '',
         completed: false,
         completedAt: null
       }

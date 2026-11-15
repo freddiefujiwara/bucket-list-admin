@@ -52,6 +52,13 @@
       </label>
 
       <div class="field-row">
+        <label class="field">
+          <span>状態</span>
+          <select v-model="form.status" class="status-select">
+            <option value="">未着手</option>
+            <option value="in_progress">仕掛り中</option>
+          </select>
+        </label>
         <label class="field checkbox">
           <input v-model="form.completed" class="completed-input" type="checkbox" />
           <span>達成済み</span>
@@ -137,6 +144,7 @@ const form = reactive({
   note: props.item?.note ?? '',
   nextAction: props.item?.nextAction ?? '',
   progress: props.item?.progress ?? '',
+  status: props.item?.status ?? '',
   imageUrl: props.item?.imageUrl ?? '',
   completed: props.item?.completed ?? false,
   completedDate: toDateInputValue(props.item?.completedAt)
@@ -150,6 +158,7 @@ const save = () => {
     note: form.note,
     next_action: form.nextAction,
     progress: form.progress,
+    status: form.completed ? '' : form.status,
     image_url: form.imageUrl,
     completed: form.completed
   };

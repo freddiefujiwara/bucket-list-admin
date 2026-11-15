@@ -12,6 +12,7 @@ export const normalizeItems = (payload) => {
     imageUrl: item.image_url ?? '',
     nextAction: item.next_action ?? '',
     progress: item.progress ?? '',
+    status: item.status ?? '',
     completed: item.completed ?? false,
     completedAt: item.completed_at ?? null
   }));
