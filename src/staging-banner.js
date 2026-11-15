@@ -22,6 +22,9 @@ export const STAGING_LINKS = [
   ["資産", "/asset/staging/"],
   ["SNS Analytics", "/social/staging/"],
   ["バケットリスト", "/bucket-list-admin/staging/"],
+  ["学习", "/xuexi/staging/"],
+  ["リーダー", "/reader/staging/"],
+  ["音楽管理", "/music-admin/staging/"],
 ];
 
 // The production root of this app. The staging build's base is
