@@ -36,8 +36,9 @@
         <h2 class="section-title">Googleログインが必要です</h2>
         <p class="meta">許可されたアカウントでサインインしてください。</p>
         <p v-if="authNotice" class="error">{{ authNotice }}</p>
+        <p v-if="signInError" class="error">{{ signInError }}</p>
         <p v-if="googleScriptError" class="error">
-          Googleログインの読み込みに失敗しました。通信環境を確認して再読み込みしてください。
+          Googleログインスクリプトの読み込みに失敗しました。広告ブロック等を解除して再読み込みしてください。
         </p>
         <div
           class="google-login-button"
@@ -50,7 +51,7 @@
           {{ error }}
           <button class="retry" type="button" @click="loadTiles">再読み込み</button>
         </p>
-        <p v-else-if="loading" class="meta">データを取得しています…</p>
+        <p v-else-if="loading" class="meta">読み込み中…</p>
         <section v-else class="table-wrap">
           <div class="stats-row">
             <p class="meta stats">全{{ totalCount }}件（達成済み {{ completedCount }}件）</p>
@@ -136,6 +137,7 @@ onMounted(() => {
 const {
   sessionToken,
   shareToken,
+  signInError,
   isAuthenticated,
   isOwner,
   authParams,
@@ -144,11 +146,11 @@ const {
   logout
 } = useAuth();
 
-const handleAuthError = (message) => {
+const handleAuthError = () => {
   if (shareToken.value) {
     shareExpired.value = true;
   } else {
-    authNotice.value = `ログインの有効期限が切れました。再度ログインしてください。（${message}）`;
+    authNotice.value = 'ログインの有効期限が切れました。再度ログインしてください。';
   }
   logout();
 };

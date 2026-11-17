@@ -29,6 +29,7 @@ const LEGACY_ID_TOKEN_KEY = 'bucket-list:id-token';
 export const useAuth = () => {
   const sessionToken = ref('');
   const shareToken = ref('');
+  const signInError = ref('');
   const googleReady = ref(false);
   const googleScriptError = ref(false);
   const googleButtonRoot = ref(null);
@@ -60,15 +61,23 @@ export const useAuth = () => {
     }
     // Exchange the ID token for the owner session; only the session
     // token is stored. A failed exchange (or one that returns no
-    // session) leaves the app signed out at the gate.
+    // session) leaves the app signed out at the gate and surfaces a
+    // message there: a 403 means the account is not the permitted
+    // owner, anything else is a general sign-in failure.
+    signInError.value = '';
     try {
       const result = await exchangeSession(credential);
       if (result?.session_token) {
         sessionToken.value = result.session_token;
         localStorage.setItem(SESSION_TOKEN_KEY, result.session_token);
+      } else {
+        signInError.value = 'ログインに失敗しました。もう一度お試しください。';
       }
-    } catch {
-      // Stay signed out; the sign-in button remains available.
+    } catch (err) {
+      signInError.value =
+        err?.code === 403
+          ? 'このアカウントでは利用できません。'
+          : 'ログインに失敗しました。もう一度お試しください。';
     }
   };
 
@@ -129,6 +138,7 @@ export const useAuth = () => {
   return {
     sessionToken,
     shareToken,
+    signInError,
     isAuthenticated,
     isOwner,
     authParams,

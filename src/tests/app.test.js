@@ -156,8 +156,46 @@ describe('App', () => {
     script.onerror();
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Googleログインの読み込みに失敗しました');
+    expect(wrapper.text()).toContain(
+      'Googleログインスクリプトの読み込みに失敗しました。広告ブロック等を解除して再読み込みしてください。'
+    );
     wrapper.unmount();
+  });
+
+  it('shows a sign-in failure message when the credential exchange fails', async () => {
+    let credentialCallback;
+    const initialize = vi.fn((options) => {
+      credentialCallback = options.callback;
+    });
+    window.google = { accounts: { id: { initialize, renderButton: vi.fn() } } };
+    exchangeSession.mockRejectedValue(new Error('offline'));
+
+    const wrapper = await mountApp();
+    expect(initialize).toHaveBeenCalled();
+
+    await credentialCallback({ credential: 'cred-1' });
+    await flushPromises();
+
+    expect(wrapper.find('.auth-gate').exists()).toBe(true);
+    expect(wrapper.text()).toContain('ログインに失敗しました。もう一度お試しください。');
+  });
+
+  it('shows an unpermitted message when the credential exchange is forbidden', async () => {
+    let credentialCallback;
+    const initialize = vi.fn((options) => {
+      credentialCallback = options.callback;
+    });
+    window.google = { accounts: { id: { initialize, renderButton: vi.fn() } } };
+    exchangeSession.mockRejectedValue(new ApiError('not the owner', 403));
+
+    const wrapper = await mountApp();
+    expect(initialize).toHaveBeenCalled();
+
+    await credentialCallback({ credential: 'cred-1' });
+    await flushPromises();
+
+    expect(wrapper.find('.auth-gate').exists()).toBe(true);
+    expect(wrapper.text()).toContain('このアカウントでは利用できません。');
   });
 
   it('loads and renders tiles for the owner', async () => {
@@ -191,7 +229,8 @@ describe('App', () => {
     const wrapper = await mountApp();
 
     expect(wrapper.find('.auth-gate').exists()).toBe(true);
-    expect(wrapper.text()).toContain('ログインの有効期限が切れました');
+    expect(wrapper.text()).toContain('ログインの有効期限が切れました。再度ログインしてください。');
+    expect(wrapper.text()).not.toContain('missing id token');
     expect(localStorage.getItem('bucket-list:session-token')).toBe(null);
   });
 
