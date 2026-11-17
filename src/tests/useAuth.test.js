@@ -43,6 +43,7 @@ describe('useAuth', () => {
     const { auth } = mountAuth();
     expect(auth.isAuthenticated.value).toBe(false);
     expect(auth.isOwner.value).toBe(false);
+    expect(auth.signInError.value).toBe('');
     expect(auth.authParams.value).toEqual({ sessionToken: '', shareToken: '' });
   });
 
@@ -84,6 +85,7 @@ describe('useAuth', () => {
     await auth.handleGoogleCredential({ credential: 'cred-1' });
     expect(auth.sessionToken.value).toBe('');
     expect(auth.isAuthenticated.value).toBe(false);
+    expect(auth.signInError.value).toBe('ログインに失敗しました。もう一度お試しください。');
   });
 
   it('stays signed out when the exchange returns nothing', async () => {
@@ -91,6 +93,7 @@ describe('useAuth', () => {
     const { auth } = mountAuth();
     await auth.handleGoogleCredential({ credential: 'cred-1' });
     expect(auth.sessionToken.value).toBe('');
+    expect(auth.signInError.value).toBe('ログインに失敗しました。もう一度お試しください。');
   });
 
   it('stays signed out when the exchange fails', async () => {
@@ -99,6 +102,36 @@ describe('useAuth', () => {
     await auth.handleGoogleCredential({ credential: 'cred-1' });
     expect(auth.sessionToken.value).toBe('');
     expect(auth.isAuthenticated.value).toBe(false);
+    expect(auth.signInError.value).toBe('ログインに失敗しました。もう一度お試しください。');
+  });
+
+  it('reports a general failure when the rejection carries no error', async () => {
+    exchangeSession.mockRejectedValue(undefined);
+    const { auth } = mountAuth();
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(auth.sessionToken.value).toBe('');
+    expect(auth.signInError.value).toBe('ログインに失敗しました。もう一度お試しください。');
+  });
+
+  it('reports an unpermitted account when the exchange is forbidden', async () => {
+    const forbidden = new Error('not the owner');
+    forbidden.code = 403;
+    exchangeSession.mockRejectedValue(forbidden);
+    const { auth } = mountAuth();
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(auth.sessionToken.value).toBe('');
+    expect(auth.isAuthenticated.value).toBe(false);
+    expect(auth.signInError.value).toBe('このアカウントでは利用できません。');
+  });
+
+  it('clears a previous sign-in error after a successful exchange', async () => {
+    exchangeSession.mockRejectedValueOnce(new Error('offline'));
+    const { auth } = mountAuth();
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(auth.signInError.value).toBe('ログインに失敗しました。もう一度お試しください。');
+    await auth.handleGoogleCredential({ credential: 'cred-1' });
+    expect(auth.sessionToken.value).toBe('sess-1');
+    expect(auth.signInError.value).toBe('');
   });
 
   it('clears both tokens on logout and revokes the session', () => {
