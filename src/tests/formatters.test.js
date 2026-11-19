@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatTargetAge } from '../utils/formatters';
+import { formatDate, formatDateInputValue, formatTargetAge } from '../utils/formatters';
 
 describe('formatDate', () => {
   it('formats ISO date strings using Asia/Tokyo parts', () => {
@@ -18,6 +18,20 @@ describe('formatDate', () => {
     const input = 'invalid-date';
 
     expect(formatDate(input)).toBe('invalid-date');
+  });
+});
+
+describe('formatDateInputValue', () => {
+  it('formats ISO timestamps as JST date input values', () => {
+    expect(formatDateInputValue('2023-10-27T10:00:00.000Z')).toBe('2023-10-27');
+    expect(formatDateInputValue('2023-10-26T16:00:00.000Z')).toBe('2023-10-27');
+  });
+
+  it('returns an empty string for missing or invalid values', () => {
+    expect(formatDateInputValue('')).toBe('');
+    expect(formatDateInputValue(null)).toBe('');
+    expect(formatDateInputValue(undefined)).toBe('');
+    expect(formatDateInputValue('invalid-date')).toBe('');
   });
 });
 

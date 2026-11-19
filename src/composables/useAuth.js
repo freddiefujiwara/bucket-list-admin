@@ -82,10 +82,7 @@ export const useAuth = () => {
   };
 
   const renderGoogleButton = () => {
-    if (!googleReady.value || !googleButtonRoot.value) {
-      return;
-    }
-    if (!window.google?.accounts?.id) {
+    if (!googleReady.value || !googleButtonRoot.value || !window.google?.accounts?.id) {
       return;
     }
     googleButtonRoot.value.innerHTML = '';
