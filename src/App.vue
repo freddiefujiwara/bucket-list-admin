@@ -115,6 +115,7 @@ import TileGrid from './components/TileGrid.vue';
 import TileModal from './components/TileModal.vue';
 import { useAuth } from './composables/useAuth';
 import { useTiles } from './composables/useTiles';
+import { runAction } from './utils/runAction';
 import { THEME_KEY, applyTheme, nextTheme, resolveTheme } from './utils/theme';
 
 const authNotice = ref('');
@@ -218,32 +219,26 @@ const closeEditor = () => {
 };
 
 const saveEditor = async (payload) => {
-  editorSaving.value = true;
-  editorError.value = '';
-  try {
-    if (editorItem.value) {
-      await updateItem(payload);
-    } else {
-      await createItem(payload);
-    }
+  const saved = await runAction(
+    editorSaving,
+    editorError,
+    () => (editorItem.value ? updateItem(payload) : createItem(payload)),
+    '保存に失敗しました。'
+  );
+  if (saved) {
     closeEditor();
-  } catch (err) {
-    editorError.value = err instanceof Error ? err.message : '保存に失敗しました。';
-  } finally {
-    editorSaving.value = false;
   }
 };
 
 const deleteEditor = async (id) => {
-  editorSaving.value = true;
-  editorError.value = '';
-  try {
-    await deleteItem(id);
+  const deleted = await runAction(
+    editorSaving,
+    editorError,
+    () => deleteItem(id),
+    '削除に失敗しました。'
+  );
+  if (deleted) {
     closeEditor();
-  } catch (err) {
-    editorError.value = err instanceof Error ? err.message : '削除に失敗しました。';
-  } finally {
-    editorSaving.value = false;
   }
 };
 
@@ -255,15 +250,14 @@ watch(selectedTile, () => {
 });
 
 const deleteFromModal = async () => {
-  modalDeleting.value = true;
-  modalDeleteError.value = '';
-  try {
-    await deleteItem(selectedTile.value.id);
+  const deleted = await runAction(
+    modalDeleting,
+    modalDeleteError,
+    () => deleteItem(selectedTile.value.id),
+    '削除に失敗しました。'
+  );
+  if (deleted) {
     closeTile();
-  } catch (err) {
-    modalDeleteError.value = err instanceof Error ? err.message : '削除に失敗しました。';
-  } finally {
-    modalDeleting.value = false;
   }
 };
 </script>
@@ -289,7 +283,8 @@ const deleteFromModal = async () => {
   flex-wrap: wrap;
 }
 
-.add-btn {
+.add-btn,
+.retry {
   border: 1px solid var(--primary);
   background: var(--primary);
   color: #ffffff;
@@ -303,16 +298,6 @@ const deleteFromModal = async () => {
 }
 
 .retry {
-  border: 1px solid var(--primary);
-  background: var(--primary);
-  color: #ffffff;
-  border-radius: 999px;
-  padding: 6px 20px;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
   margin-left: 12px;
 }
 

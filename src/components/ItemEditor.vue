@@ -93,6 +93,8 @@
 
 <script setup>
 import { computed, reactive } from 'vue';
+import { confirmDeleteItem } from '../utils/confirmDelete';
+import { formatDateInputValue } from '../utils/formatters';
 
 const AGE_OPTIONS = [40, 50, 60, 70, 80, 90, 100];
 
@@ -119,24 +121,6 @@ const emit = defineEmits(['save', 'delete', 'cancel']);
 
 const isNew = computed(() => props.item === null);
 
-const toDateInputValue = (iso) => {
-  if (!iso) {
-    return '';
-  }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Tokyo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).formatToParts(date);
-  const get = (type) => parts.find((part) => part.type === type).value;
-  return `${get('year')}-${get('month')}-${get('day')}`;
-};
-
 const form = reactive({
   title: props.item?.title ?? '',
   category: props.item?.category ?? '',
@@ -147,7 +131,7 @@ const form = reactive({
   status: props.item?.status ?? '',
   imageUrl: props.item?.imageUrl ?? '',
   completed: props.item?.completed ?? false,
-  completedDate: toDateInputValue(props.item?.completedAt)
+  completedDate: formatDateInputValue(props.item?.completedAt)
 });
 
 const save = () => {
@@ -172,7 +156,7 @@ const save = () => {
 };
 
 const remove = () => {
-  if (window.confirm('この項目を削除しますか？')) {
+  if (confirmDeleteItem()) {
     emit('delete', props.item.id);
   }
 };

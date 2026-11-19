@@ -56,6 +56,7 @@
 
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
+import { confirmDeleteItem } from '../utils/confirmDelete';
 import { formatDate, formatTargetAge } from '../utils/formatters';
 import { isDisplayableImage } from '../utils/image';
 
@@ -89,7 +90,7 @@ const close = () => {
 };
 
 const remove = () => {
-  if (window.confirm('この項目を削除しますか？')) {
+  if (confirmDeleteItem()) {
     emit('delete', props.item.id);
   }
 };

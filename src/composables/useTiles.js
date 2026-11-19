@@ -1,8 +1,9 @@
-import { computed, onUnmounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { ApiError, fetchItems, postAction } from '../services/api';
 import { normalizeItems } from '../utils/normalizeItems';
 import { sortItems } from '../utils/sortItems';
 import { stripImageRelatedData } from '../utils/stripImageData';
+import { useTimedFlag } from './useTimedFlag';
 
 const emptyFilters = () => ({ category: '', targetAge: null, status: 'all' });
 
@@ -19,8 +20,7 @@ export const useTiles = (getAuthParams, onAuthError) => {
   const filters = ref(emptyFilters());
   const selectedIndex = ref(-1);
   const rawData = ref([]);
-  const copyDone = ref(false);
-  let copyDoneTimer = null;
+  const { flag: copyDone, flash: flashCopyDone } = useTimedFlag();
 
   const countBy = (key) => {
     const counts = new Map();
@@ -83,11 +83,9 @@ export const useTiles = (getAuthParams, onAuthError) => {
   const handleLoadError = (err) => {
     if (err instanceof ApiError && err.isAuthError) {
       onAuthError(err.message);
-      rawData.value = [];
-      tiles.value = [];
-      return;
+    } else {
+      error.value = err instanceof Error ? err.message : 'データ取得に失敗しました。';
     }
-    error.value = err instanceof Error ? err.message : 'データ取得に失敗しました。';
     rawData.value = [];
     tiles.value = [];
   };
@@ -160,22 +158,8 @@ export const useTiles = (getAuthParams, onAuthError) => {
     const sanitizedData = stripImageRelatedData(rawData.value);
     const jsonText = JSON.stringify(sanitizedData, null, 2);
     await navigator.clipboard.writeText(jsonText);
-
-    copyDone.value = true;
-    if (copyDoneTimer) {
-      clearTimeout(copyDoneTimer);
-    }
-    copyDoneTimer = setTimeout(() => {
-      copyDone.value = false;
-      copyDoneTimer = null;
-    }, 3000);
+    flashCopyDone();
   };
-
-  onUnmounted(() => {
-    if (copyDoneTimer) {
-      clearTimeout(copyDoneTimer);
-    }
-  });
 
   return {
     loading,

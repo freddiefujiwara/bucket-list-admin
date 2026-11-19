@@ -6,7 +6,7 @@
 - `src/App.vue`: The root Vue component.
 - `src/components/`: Reusable UI components.
 - `src/composables/`: Reusable Vue composables.
-- `src/services/`: API-related helpers (e.g., `fetchJsonp`).
+- `src/services/`: API-related helpers.
 - `src/utils/`: Data transformation utilities.
 - `src/tests/`: Vitest unit tests.
 - `src/style.css`: Global stylesheets.
@@ -39,5 +39,5 @@
 - PRs should include a clear description, testing notes, and screenshots/GIFs for UI changes.
 
 ## Configuration & Deployment Notes
-- Set `VITE_DATA_URL` to point at the JSONP backend endpoint.
+- Set `VITE_DATA_URL` to point at the backend endpoint.
 - Set `VITE_BASE="/your-repo-name/"` when deploying to GitHub Pages.

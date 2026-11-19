@@ -32,8 +32,10 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useTimedFlag } from '../composables/useTimedFlag';
 import { issueShare, revokeShare } from '../services/api';
+import { runAction } from '../utils/runAction';
 import {
   buildShareUrl,
   formatShareExpiry,
@@ -51,8 +53,7 @@ const props = defineProps({
 const issued = ref(null);
 const message = ref('');
 const busy = ref(false);
-const copied = ref(false);
-let copiedTimer = null;
+const { flag: copied, flash: flashCopied } = useTimedFlag();
 
 const shareUrl = computed(() =>
   issued.value
@@ -74,49 +75,34 @@ const expiryLabel = computed(() =>
 );
 
 const issue = async () => {
-  busy.value = true;
-  message.value = '';
-  try {
-    const result = await issueShare(props.sessionToken);
-    issued.value = { token: result.share_token, expiresAt: result.expires_at };
-  } catch (err) {
-    message.value = err instanceof Error ? err.message : 'リンクの発行に失敗しました。';
-  } finally {
-    busy.value = false;
-  }
+  await runAction(
+    busy,
+    message,
+    async () => {
+      const result = await issueShare(props.sessionToken);
+      issued.value = { token: result.share_token, expiresAt: result.expires_at };
+    },
+    'リンクの発行に失敗しました。'
+  );
 };
 
 const revoke = async () => {
-  busy.value = true;
-  message.value = '';
-  try {
-    await revokeShare(props.sessionToken);
-    issued.value = null;
-    message.value = 'リンクを取り消しました。';
-  } catch (err) {
-    message.value = err instanceof Error ? err.message : 'リンクの取り消しに失敗しました。';
-  } finally {
-    busy.value = false;
-  }
+  await runAction(
+    busy,
+    message,
+    async () => {
+      await revokeShare(props.sessionToken);
+      issued.value = null;
+      message.value = 'リンクを取り消しました。';
+    },
+    'リンクの取り消しに失敗しました。'
+  );
 };
 
 const copyShareUrl = async () => {
   await navigator.clipboard.writeText(shareUrl.value);
-  copied.value = true;
-  if (copiedTimer) {
-    clearTimeout(copiedTimer);
-  }
-  copiedTimer = setTimeout(() => {
-    copied.value = false;
-    copiedTimer = null;
-  }, 3000);
+  flashCopied();
 };
-
-onUnmounted(() => {
-  if (copiedTimer) {
-    clearTimeout(copiedTimer);
-  }
-});
 </script>
 
 <style scoped>

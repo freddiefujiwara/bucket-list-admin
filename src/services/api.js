@@ -26,31 +26,36 @@ const parseResponse = async (response) => {
   return data;
 };
 
-const applyAuthParams = (url, auth) => {
+// The credential to send, as a [parameter name, value] pair. A share token
+// wins over an owner session, which wins over a raw ID token.
+const authEntry = (auth) => {
   if (auth?.shareToken) {
-    url.searchParams.set('share_token', auth.shareToken);
-  } else if (auth?.sessionToken) {
-    url.searchParams.set('session_token', auth.sessionToken);
-  } else if (auth?.idToken) {
-    url.searchParams.set('id_token', auth.idToken);
+    return ['share_token', auth.shareToken];
   }
+  if (auth?.sessionToken) {
+    return ['session_token', auth.sessionToken];
+  }
+  if (auth?.idToken) {
+    return ['id_token', auth.idToken];
+  }
+  return null;
 };
 
 export const fetchItems = async (auth) => {
   const url = new URL(DATA_URL);
-  applyAuthParams(url, auth);
+  const entry = authEntry(auth);
+  if (entry) {
+    url.searchParams.set(entry[0], entry[1]);
+  }
   const response = await fetch(url.toString());
   return parseResponse(response);
 };
 
 export const postAction = async (auth, action, payload = {}) => {
   const body = { action, ...payload };
-  if (auth?.shareToken) {
-    body.share_token = auth.shareToken;
-  } else if (auth?.sessionToken) {
-    body.session_token = auth.sessionToken;
-  } else if (auth?.idToken) {
-    body.id_token = auth.idToken;
+  const entry = authEntry(auth);
+  if (entry) {
+    body[entry[0]] = entry[1];
   }
   const response = await fetch(DATA_URL, {
     method: 'POST',
@@ -60,32 +65,26 @@ export const postAction = async (auth, action, payload = {}) => {
   return parseResponse(response);
 };
 
-const shareAction = async (sessionToken, action) => {
+// GET endpoints that take an action name plus one credential parameter.
+const getAction = async (params) => {
   const url = new URL(DATA_URL);
-  url.searchParams.set('action', action);
-  url.searchParams.set('session_token', sessionToken);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
   const response = await fetch(url.toString());
   return parseResponse(response);
 };
 
-export const issueShare = (sessionToken) => shareAction(sessionToken, 'issue_share');
+export const issueShare = (sessionToken) =>
+  getAction({ action: 'issue_share', session_token: sessionToken });
 
-export const revokeShare = (sessionToken) => shareAction(sessionToken, 'revoke_share');
+export const revokeShare = (sessionToken) =>
+  getAction({ action: 'revoke_share', session_token: sessionToken });
 
 // Exchange a Google ID token (valid for about an hour) for a 30-day
 // owner session token right after sign-in.
-export const exchangeSession = async (idToken) => {
-  const url = new URL(DATA_URL);
-  url.searchParams.set('action', 'exchange_session');
-  url.searchParams.set('id_token', idToken);
-  const response = await fetch(url.toString());
-  return parseResponse(response);
-};
+export const exchangeSession = (idToken) =>
+  getAction({ action: 'exchange_session', id_token: idToken });
 
-export const revokeSession = async (sessionToken) => {
-  const url = new URL(DATA_URL);
-  url.searchParams.set('action', 'revoke_session');
-  url.searchParams.set('session_token', sessionToken);
-  const response = await fetch(url.toString());
-  return parseResponse(response);
-};
+export const revokeSession = (sessionToken) =>
+  getAction({ action: 'revoke_session', session_token: sessionToken });
