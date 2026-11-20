@@ -1,7 +1,17 @@
+// The formatters only accept scalar timestamps and ages: anything
+// else (objects, arrays, booleans) is a deformed payload value. This
+// also keeps `new Date(...)` and `parseInt(...)` away from objects
+// whose toString is not a function, which throw a TypeError when
+// converted to a primitive.
+const isScalar = (value) => typeof value === 'string' || typeof value === 'number';
+
 export const formatDate = (value) => {
+  if (!isScalar(value)) {
+    return '';
+  }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return typeof value === 'string' ? value : '';
   }
   const parts = new Intl.DateTimeFormat('ja-JP', {
     timeZone: 'Asia/Tokyo',
@@ -15,7 +25,7 @@ export const formatDate = (value) => {
 
 /** Converts an ISO timestamp to a "YYYY-MM-DD" value (JST) for date inputs. */
 export const formatDateInputValue = (iso) => {
-  if (!iso) {
+  if (!iso || !isScalar(iso)) {
     return '';
   }
   const date = new Date(iso);
@@ -32,10 +42,21 @@ export const formatDateInputValue = (iso) => {
   return `${get('year')}-${get('month')}-${get('day')}`;
 };
 
+const asAgeText = (value) => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  return '';
+};
+
 export const formatTargetAge = (value) => {
-  const numeric = Number.parseInt(value, 10);
+  const text = asAgeText(value);
+  const numeric = Number.parseInt(text, 10);
   if (Number.isNaN(numeric)) {
-    return `目標: ${value}`;
+    return `目標: ${text}`;
   }
   return `目標: ${numeric}歳台`;
 };

@@ -47,6 +47,10 @@ const compareById = (a, b) => {
  * their group. The order never changes between loads.
  */
 export const sortItems = (items) => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
   const uncompletedItems = items.filter((item) => item.completed !== true);
   const completedItems = items.filter((item) => item.completed === true);
 
