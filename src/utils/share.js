@@ -40,7 +40,11 @@ export function formatShareExpiry(expiresAt) {
     return '';
   }
   const pad = (n) => String(n).padStart(2, '0');
-  const ymd = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+  // Always render the year as 4 digits: padStart covers years below
+  // 1000, and slice keeps years beyond 9999 (a local timezone shift can
+  // push a 9999 UTC date into the year 10000) at 4 digits.
+  const year = String(date.getFullYear()).padStart(4, '0').slice(-4);
+  const ymd = `${year}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
   return `${ymd} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
