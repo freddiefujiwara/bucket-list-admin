@@ -18,7 +18,6 @@
 - `npm test`: run the Vitest suite once.
 - `npm run test:watch`: run tests in watch mode.
 - `npm run test:coverage`: generate coverage with V8.
-- `npm run deploy`: build and publish `dist/` to `gh-pages`.
 
 ## Coding Style & Naming Conventions
 - Indentation: 2 spaces in Vue templates, JS, and CSS.
