@@ -25,6 +25,7 @@ export const STAGING_LINKS = [
   ["学习", "/xuexi/staging/"],
   ["リーダー", "/reader/staging/"],
   ["音楽管理", "/music-admin/staging/"],
+  ["Muse", "/muse/staging/"],
 ];
 
 // The production root of this app. The staging build's base is
